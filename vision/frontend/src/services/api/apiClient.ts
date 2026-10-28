@@ -327,6 +327,10 @@ export class ApiClient {
     );
   }
 
+  async getSession(): Promise<HttpResult<{ userId: string | null }>> {
+    return this.httpClient.get<{ userId: string | null }>("/session");
+  }
+
   async getUserInfo(
     userId: string
   ): Promise<

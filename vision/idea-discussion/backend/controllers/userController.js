@@ -1,5 +1,6 @@
 import path from "node:path";
 import User from "../models/User.js";
+import { participantId } from "../utils/participantId.js";
 import { createStorageService } from "../services/storage/storageServiceFactory.js";
 import { generateRandomDisplayName } from "../utils/displayNameGenerator.js";
 
@@ -67,7 +68,7 @@ const saveUser = async (user) => {
  */
 export const getUserInfo = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = participantId(req, req.params.userId);
     const user = await getUser(userId);
 
     return res.status(200).json({
@@ -91,7 +92,7 @@ export const getUserInfo = async (req, res) => {
  */
 export const updateUserDisplayName = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = participantId(req, req.params.userId);
     const { displayName } = req.body;
 
     if (!displayName) {
@@ -123,7 +124,7 @@ export const updateUserDisplayName = async (req, res) => {
  */
 export const uploadProfileImage = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const userId = participantId(req, req.params.userId);
     const file = req.file;
     console.log("Upload request:", {
       params: req.params,

@@ -5,6 +5,8 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import { Server } from "socket.io";
+import "./plugins/registerTenantPlugin.js";
+import { tenantMiddleware } from "./middleware/tenantMiddleware.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
 
@@ -48,7 +50,7 @@ app.use(
     origin: process.env.IDEA_CORS_ORIGIN
       ? process.env.IDEA_CORS_ORIGIN.split(",")
       : ["http://localhost:5173", "http://localhost:5175"],
-    // Add other origins (e.g., production frontend URL) if needed
+    credentials: true,
   })
 );
 
@@ -62,6 +64,13 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date() });
 });
+
+app.get("/api/session", (req, res) => {
+  const sub = req.headers["x-amzn-oidc-identity"];
+  res.json({ userId: typeof sub === "string" && sub.trim() ? sub.trim() : null });
+});
+
+app.use(tenantMiddleware);
 
 import authRoutes from "./routes/authRoutes.js"; // 追加: 認証ルート
 import likeRoutes from "./routes/likeRoutes.js"; // Import like routes
@@ -105,19 +114,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// --- Serve static files in production ---
-// This section will be useful when deploying to production
-// For development, we'll handle this with a fallback route
-if (process.env.NODE_ENV === "production") {
-  // Serve static files from the React app build directory
-  const frontendBuildPath = path.join(__dirname, "../frontend/dist");
-  app.use(express.static(frontendBuildPath));
-
-  // For any request that doesn't match an API route, serve the React app
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendBuildPath, "index.html"));
-  });
-}
+// The screen is served by its own container. This process only serves the API.
 
 // For development, add a fallback route to handle non-API requests
 app.use((req, res, next) => {

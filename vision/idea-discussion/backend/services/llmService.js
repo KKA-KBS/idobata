@@ -6,8 +6,8 @@ import OpenAI from "openai";
 dotenv.config({ override: true }); // Load environment variables from .env file
 
 const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY || "mock-api-key",
+  baseURL: process.env.LLM_BASE_URL || "https://openrouter.ai/api/v1",
+  apiKey: process.env.LLM_API_KEY || process.env.OPENROUTER_API_KEY || "mock-api-key",
 });
 
 // Model IDs are configurable via environment variables so they can be swapped

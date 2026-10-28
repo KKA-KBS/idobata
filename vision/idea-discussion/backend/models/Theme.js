@@ -5,17 +5,15 @@ const themeSchema = new mongoose.Schema(
     title: {
       type: String,
       required: true,
-      unique: true,
     },
     description: {
       type: String,
       required: false,
     },
     slug: {
-      // URLなどで使用するための識別子
+      // URLなどで使用するための識別子。一意性はテナント内。
       type: String,
       required: true,
-      unique: true,
     },
     isActive: {
       type: Boolean,
@@ -37,6 +35,9 @@ const themeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+themeSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
+themeSchema.index({ tenantId: 1, title: 1 }, { unique: true });
 
 const Theme = mongoose.model("Theme", themeSchema);
 

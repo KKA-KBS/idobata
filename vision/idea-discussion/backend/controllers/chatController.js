@@ -5,6 +5,7 @@ import QuestionLink from "../models/QuestionLink.js"; // Import QuestionLink mod
 import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion model
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
+import { participantId } from "../utils/participantId.js";
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
 
 // Controller function for handling new chat messages by theme
@@ -17,6 +18,7 @@ const handleNewMessageByTheme = async (req, res) => {
 
   try {
     let { userId, message, threadId, questionId, context } = req.body;
+    userId = participantId(req, userId);
 
     // Validate input
     if (!message) {
@@ -546,7 +548,8 @@ const getThreadMessagesByTheme = async (req, res) => {
 
 // Controller function for getting a thread by user and question
 const getThreadByUserAndQuestion = async (req, res) => {
-  const { userId, questionId } = req.query;
+  const { questionId } = req.query;
+  const userId = participantId(req, req.query.userId);
 
   if (!userId) {
     return res.status(400).json({ error: "User ID is required" });
@@ -619,7 +622,7 @@ const getThreadByUserAndQuestion = async (req, res) => {
 // Controller function for getting a thread by user and theme (for theme-level chats)
 const getThreadByUserAndTheme = async (req, res) => {
   const { themeId } = req.params;
-  const { userId } = req.query;
+  const userId = participantId(req, req.query.userId);
 
   if (!mongoose.Types.ObjectId.isValid(themeId)) {
     return res.status(400).json({ error: "Invalid theme ID format" });
