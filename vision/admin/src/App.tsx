@@ -1,12 +1,11 @@
 import React from "react";
-import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Header from "./components/layout/Header";
 import MainContent from "./components/layout/MainContent";
 import Sidebar from "./components/layout/Sidebar";
 import { AuthProvider } from "./contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
-import Login from "./pages/Login";
 import SiteConfigEdit from "./pages/SiteConfigEdit";
 import ThemeClustering from "./pages/ThemeClustering";
 import ThemeCreate from "./pages/ThemeCreate";
@@ -23,7 +22,7 @@ const App: React.FC = () => {
     <AuthProvider>
       <Router basename={basename}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route
             path="/*"
             element={

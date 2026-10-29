@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const ImportedItemSchema = new mongoose.Schema({
   sourceType: {
@@ -50,5 +51,7 @@ const ImportedItemSchema = new mongoose.Schema({
     type: String,
   },
 });
+
+ImportedItemSchema.plugin(tenantPlugin);
 
 export default mongoose.model("ImportedItem", ImportedItemSchema);

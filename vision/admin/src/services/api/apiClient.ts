@@ -36,14 +36,10 @@ export class ApiClient {
       ...options.headers,
     };
 
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      (headers as Record<string, string>).Authorization = `Bearer ${token}`;
-    }
-
     const config = {
       ...options,
       headers,
+      credentials: "include" as const,
     };
 
     try {

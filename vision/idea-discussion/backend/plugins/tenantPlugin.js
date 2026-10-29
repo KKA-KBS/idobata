@@ -23,7 +23,9 @@ export function tenantPlugin(schema) {
     "findOneAndUpdate",
     "findOneAndDelete",
     "countDocuments",
+    "updateOne",
     "updateMany",
+    "deleteOne",
     "deleteMany",
     "distinct",
   ];

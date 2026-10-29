@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useSession } from "../../contexts/SessionContext";
 import { useSiteConfig } from "../../contexts/SiteConfigContext";
 import { Button } from "../ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "../ui/sheet";
@@ -43,6 +44,10 @@ const NAV_ITEMS = [
 const Header: React.FC = () => {
   const location = useLocation();
   const { siteConfig, loading } = useSiteConfig();
+  const session = useSession();
+  const returnTo = encodeURIComponent(
+    typeof window === "undefined" ? "" : window.location.href
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full border-b-2 border-[#2D80FF] bg-white">
@@ -140,6 +145,18 @@ const Header: React.FC = () => {
           </Sheet>
         </div>
       </div>
+      {session ? (
+        <div className="flex justify-end items-center gap-4 px-6 pb-3 text-sm text-[#27272A]">
+          <span>{session.displayName}</span>
+          {session.role === "tenant-admin" ? (
+            <a href="/admin">管理画面</a>
+          ) : null}
+          {session.count > 1 ? (
+            <a href={`/session?switch=1&return=${returnTo}`}>切り替える</a>
+          ) : null}
+          <a href="/logout">ログアウト</a>
+        </div>
+      ) : null}
     </header>
   );
 };

@@ -1,14 +1,19 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiClient } from "../services/api/apiClient";
 import type { User } from "../services/api/types";
 
+export type SessionMe = {
+  tenantId: string | null;
+  displayName: string | null;
+  role: string | null;
+  count: number;
+};
+
 interface AuthContextType {
   user: User | null;
-  token: string | null;
+  session: SessionMe | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,68 +32,55 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [session, setSession] = useState<SessionMe | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem("auth_token");
-
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          const result = await apiClient.getCurrentUser();
-          if (result.isOk()) {
-            setUser(result.value.user);
-          } else {
-            localStorage.removeItem("auth_token");
-            setToken(null);
+      try {
+        const response = await fetch("/session/me", { credentials: "include" });
+        if (response.status !== 404 && response.ok) {
+          const me = (await response.json()) as SessionMe;
+          if (!me.tenantId) {
+            const returnTo = encodeURIComponent(window.location.href);
+            window.location.assign(`/session?return=${returnTo}`);
+            return;
           }
-        } catch (error) {
-          console.error("Failed to get current user:", error);
-          localStorage.removeItem("auth_token");
-          setToken(null);
+          setSession(me);
+          if (me.role === "tenant-admin") {
+            setUser({
+              id: me.tenantId,
+              name: me.displayName || me.tenantId,
+              email: me.displayName || me.tenantId,
+              role: "admin",
+            });
+          } else {
+            setUser(null);
+          }
+          setIsLoading(false);
+          return;
         }
-      }
 
-      setIsLoading(false);
+        const result = await apiClient.getCurrentUser();
+        setUser(result.isOk() ? result.value.user : null);
+      } catch (error) {
+        console.error("Failed to get current user:", error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const result = await apiClient.login(email, password);
-      if (result.isOk()) {
-        const { token, user } = result.value;
-        localStorage.setItem("auth_token", token);
-        setToken(token);
-        setUser(user);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Login failed:", error);
-      return false;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("auth_token");
-    setToken(null);
-    setUser(null);
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
+        session,
         isAuthenticated: !!user,
         isLoading,
-        login,
-        logout,
       }}
     >
       {children}

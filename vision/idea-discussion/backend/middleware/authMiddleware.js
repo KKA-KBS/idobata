@@ -83,9 +83,10 @@ export const protect = async (req, res, next) => {
 };
 
 export const admin = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(403).json({ message: "管理者権限が必要です" });
+  if (process.env.MEMBERSHIPS_TABLE) {
+    if (req.tenantRole === "tenant-admin") return next();
+    return res.status(403).json({ message: "管理者権限が必要です" });
   }
+  if (req.user && req.user.role === "admin") return next();
+  return res.status(403).json({ message: "管理者権限が必要です" });
 };

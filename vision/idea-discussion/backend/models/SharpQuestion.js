@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const sharpQuestionSchema = new mongoose.Schema(
   {
@@ -36,6 +37,8 @@ const sharpQuestionSchema = new mongoose.Schema(
   },
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加 (todo.md指示)
+
+sharpQuestionSchema.plugin(tenantPlugin);
 
 const SharpQuestion = mongoose.model("SharpQuestion", sharpQuestionSchema);
 

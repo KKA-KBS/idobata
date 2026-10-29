@@ -7,6 +7,7 @@ import {
   getThemeDetail,
   updateTheme,
 } from "../controllers/themeController.js";
+import { admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -16,10 +17,10 @@ router.get("/:themeId", getThemeById);
 
 router.get("/:themeId/detail", getThemeDetail);
 
-router.post("/", createTheme);
+router.post("/", admin, createTheme);
 
-router.put("/:themeId", updateTheme);
+router.put("/:themeId", admin, updateTheme);
 
-router.delete("/:themeId", deleteTheme);
+router.delete("/:themeId", admin, deleteTheme);
 
 export default router;

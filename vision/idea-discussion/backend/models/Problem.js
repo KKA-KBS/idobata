@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const problemSchema = new mongoose.Schema(
   {
@@ -51,6 +52,8 @@ const problemSchema = new mongoose.Schema(
   },
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加
+
+problemSchema.plugin(tenantPlugin);
 
 const Problem = mongoose.model("Problem", problemSchema);
 

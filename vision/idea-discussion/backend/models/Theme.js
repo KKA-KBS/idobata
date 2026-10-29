@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const themeSchema = new mongoose.Schema(
   {
@@ -35,6 +36,8 @@ const themeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+themeSchema.plugin(tenantPlugin);
 
 themeSchema.index({ tenantId: 1, slug: 1 }, { unique: true });
 themeSchema.index({ tenantId: 1, title: 1 }, { unique: true });

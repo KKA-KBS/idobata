@@ -2,6 +2,7 @@ import { Navigate, Outlet, createBrowserRouter } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import PageLayout from "./components/layout/PageLayout";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SessionGate } from "./contexts/SessionContext";
 import { MockProvider } from "./contexts/MockContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import About from "./pages/About";
@@ -23,13 +24,15 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: (
-      <ThemeProvider>
-        <AuthProvider>
-          <MockProvider>
-            <App />
-          </MockProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <SessionGate>
+        <ThemeProvider>
+          <AuthProvider>
+            <MockProvider>
+              <App />
+            </MockProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </SessionGate>
     ),
     children: [
       { index: true, element: <Navigate to="/top" replace /> },

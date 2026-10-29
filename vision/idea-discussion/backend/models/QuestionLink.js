@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const questionLinkSchema = new mongoose.Schema(
   {
@@ -60,6 +61,8 @@ questionLinkSchema.pre("save", function (next) {
   }
   next();
 });
+
+questionLinkSchema.plugin(tenantPlugin);
 
 const QuestionLink = mongoose.model("QuestionLink", questionLinkSchema);
 

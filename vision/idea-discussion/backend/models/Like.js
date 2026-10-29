@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const likeSchema = new mongoose.Schema(
   {
@@ -20,6 +21,8 @@ const likeSchema = new mongoose.Schema(
 );
 
 likeSchema.index({ targetType: 1, targetId: 1, userId: 1 }, { unique: true });
+
+likeSchema.plugin(tenantPlugin);
 
 const Like = mongoose.model("Like", likeSchema);
 

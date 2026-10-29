@@ -7,6 +7,15 @@ class TenantError extends Error {
   }
 }
 
+function cookieValue(header, name) {
+  if (typeof header !== "string") return "";
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return decodeURIComponent(rest.join("="));
+  }
+  return "";
+}
+
 async function membershipsFor(sub) {
   const { DynamoDBClient, QueryCommand } = await import("@aws-sdk/client-dynamodb");
   const client = new DynamoDBClient({
@@ -19,7 +28,12 @@ async function membershipsFor(sub) {
       ExpressionAttributeValues: { ":sub": { S: sub } },
     })
   );
-  return (result.Items || []).map((item) => item.tenantId?.S).filter(Boolean);
+  return (result.Items || [])
+    .map((item) => ({
+      tenantId: item.tenantId?.S,
+      role: item.role?.S || "member",
+    }))
+    .filter((item) => item.tenantId);
 }
 
 export async function resolveTenantId(req) {
@@ -31,18 +45,19 @@ export async function resolveTenantId(req) {
     throw new TenantError(401, "認証が必要です");
   }
 
-  const tenants = await membershipsFor(sub.trim());
-  const requested = req.headers["x-tenant-id"];
-  const tenantId = typeof requested === "string" ? requested.trim() : "";
+  const memberships = await membershipsFor(sub.trim());
+  const headerTenant = req.headers["x-tenant-id"];
+  const requested =
+    (typeof headerTenant === "string" ? headerTenant.trim() : "") ||
+    cookieValue(req.headers.cookie, "dd_tenant");
+  const chosen = memberships.find((item) => item.tenantId === requested);
 
-  if (tenantId) {
-    if (!tenants.includes(tenantId)) {
-      throw new TenantError(403, "このテナントのメンバーではありません");
-    }
-    return tenantId;
+  if (requested) {
+    if (!chosen) throw new TenantError(403, "このテナントのメンバーではありません");
+    return chosen;
   }
-  if (tenants.length === 1) return tenants[0];
-  if (tenants.length === 0) {
+  if (memberships.length === 1) return memberships[0];
+  if (memberships.length === 0) {
     throw new TenantError(403, "所属するテナントがありません");
   }
   throw new TenantError(400, "x-tenant-id が必要です");
@@ -56,9 +71,10 @@ export function tenantMiddleware(req, res, next) {
   }
 
   resolveTenantId(req)
-    .then((tenantId) => {
-      if (!tenantId) return next();
-      tenantStorage.run(tenantId, () => next());
+    .then((chosen) => {
+      if (!chosen) return next();
+      req.tenantRole = chosen.role;
+      tenantStorage.run(chosen.tenantId, () => next());
     })
     .catch((error) => {
       const statusCode = error.statusCode || 500;
