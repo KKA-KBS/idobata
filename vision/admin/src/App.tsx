@@ -15,10 +15,13 @@ import ThemeEmbedding from "./pages/ThemeEmbedding";
 import ThemeList from "./pages/ThemeList";
 import ThemeVectorSearch from "./pages/ThemeVectorSearch";
 
+const baseUrl = import.meta.env.BASE_URL || "/";
+const basename = baseUrl === "/" ? undefined : baseUrl.replace(/\/$/, "");
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={basename}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
