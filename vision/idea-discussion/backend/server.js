@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { Server } from "socket.io";
 import "./plugins/registerTenantPlugin.js";
 import { tenantMiddleware } from "./middleware/tenantMiddleware.js";
+import { dropLegacyIndexes } from "./utils/dropLegacyIndexes.js";
 import themeRoutes from "./routes/themeRoutes.js"; // Import theme routes
 import { callLLM } from "./services/llmService.js"; // Import LLM service
 
@@ -24,6 +25,10 @@ if (!mongoUri) {
 try {
   await mongoose.connect(mongoUri || "mongodb://localhost:27017/idobata");
   console.log("MongoDB connected successfully.");
+  await dropLegacyIndexes().catch((err) => {
+    // 起動は止めない。残っていると、別テナントと同じ名前のテーマが作れない。
+    console.error("Failed to drop legacy indexes:", err);
+  });
 } catch (err) {
   console.error("MongoDB connection error:", err);
   console.warn("Continuing without MongoDB for testing purposes");
