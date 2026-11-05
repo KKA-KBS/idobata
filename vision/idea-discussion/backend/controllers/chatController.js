@@ -8,6 +8,20 @@ import { callLLM } from "../services/llmService.js"; // Import the LLM service
 import { participantId } from "../utils/participantId.js";
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
 
+/**
+ * チャットの対象となっているテーマを AI に伝える文を作る。テーマが無ければ空文字。
+ */
+export function buildThemeContext(theme) {
+  if (!theme?.title) return "";
+  let context = `この対話のテーマ: ${theme.title}\n`;
+  if (theme.description) {
+    context += `テーマの説明: ${theme.description}\n`;
+  }
+  context +=
+    "このテーマに沿って対話してください。ユーザーの話題がテーマから大きく外れた場合は、否定せずにテーマとのつながりを尋ねてください。\n";
+  return context;
+}
+
 // Controller function for handling new chat messages by theme
 const handleNewMessageByTheme = async (req, res) => {
   const { themeId } = req.params;
@@ -345,8 +359,9 @@ const handleNewMessageByTheme = async (req, res) => {
 
     // --- Get theme and determine system prompt ---
     let systemPrompt = "";
+    let theme = null;
     try {
-      const theme = await Theme.findById(themeId);
+      theme = await Theme.findById(themeId);
       if (theme?.customPrompt) {
         systemPrompt = theme.customPrompt;
       } else {
@@ -378,6 +393,12 @@ const handleNewMessageByTheme = async (req, res) => {
 
     llmMessages.push({ role: "system", content: systemPrompt });
     // --- End core system prompt ---
+
+    // テーマのタイトルと説明を伝える。AIプロンプトを設定していてもいなくても付ける
+    const themeContext = buildThemeContext(theme);
+    if (themeContext) {
+      llmMessages.push({ role: "system", content: themeContext });
+    }
 
     // Add the reference opinions as a system message
     if (referenceOpinions) {
