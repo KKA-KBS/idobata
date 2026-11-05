@@ -166,10 +166,15 @@ const Top = () => {
       ? {
           discussions: mockDiscussionData,
           themes: mockThemeData,
+          latestThemes: mockThemeData.map((t) => ({
+            _id: t.id,
+            title: t.title,
+          })),
           questions: mockQuestions,
           latestOpinions: [], // Mock mode doesn't have opinions yet
         }
       : {
+          latestThemes: topPageData?.latestThemes || [],
           latestQuestions: topPageData?.latestQuestions || [],
           latestOpinions: topPageData?.latestOpinions || [],
         };
