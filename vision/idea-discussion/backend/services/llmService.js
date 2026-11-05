@@ -22,17 +22,22 @@ const VISUAL_LLM_MODEL =
  * @param {Array} messages - Array of message objects with role and content properties
  * @param {boolean} jsonOutput - Whether to request JSON output from the LLM
  * @param {string} model - The model ID to use (defaults to the LLM_MODEL env var)
+ * @param {number} [maxTokens] - Upper limit of output tokens (the provider default when omitted)
  * @returns {string|Object} - Returns parsed JSON object if jsonOutput=true, otherwise string content
  */
 async function callLLM(
   messages,
   jsonOutput = false,
-  model = DEFAULT_LLM_MODEL
+  model = DEFAULT_LLM_MODEL,
+  maxTokens = undefined
 ) {
   const options = {
     model: model,
     messages: messages,
   };
+  if (maxTokens) {
+    options.max_tokens = maxTokens;
+  }
   if (jsonOutput) {
     options.response_format = { type: "json_object" };
     // Ensure the last message prompts for JSON output explicitly

@@ -6,6 +6,30 @@ import SharpQuestion from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { VISUAL_LLM_MODEL, callLLM } from "./llmService.js";
 
+// HTML と CSS を丸ごと書かせるので出力が長い。既定の上限だと途中で切れて HTML が閉じない
+const VISUAL_REPORT_MAX_TOKENS = 16000;
+
+/**
+ * LLM の出力から HTML の部分だけを取り出す。
+ * コードブロックの囲みや、前後に付いた説明の文章を除く。
+ */
+export function extractHtml(content) {
+  let html = content.trim();
+  const fenced = html.match(/```(?:html)?\s*([\s\S]*?)```/i);
+  if (fenced) {
+    html = fenced[1].trim();
+  }
+  const start = html.search(/<!DOCTYPE html|<html[\s>]/i);
+  if (start > 0) {
+    html = html.slice(start);
+  }
+  const end = html.toLowerCase().lastIndexOf("</html>");
+  if (end >= 0) {
+    html = html.slice(0, end + "</html>".length);
+  }
+  return html;
+}
+
 export async function getVisualReport(questionId) {
   return QuestionVisualReport.findOne({
     questionId: new mongoose.Types.ObjectId(questionId),
@@ -148,14 +172,15 @@ ${markdownContent}
     const completion = await callLLM(
       [{ role: "user", content: visualPrompt }],
       false,
-      VISUAL_LLM_MODEL
+      VISUAL_LLM_MODEL,
+      VISUAL_REPORT_MAX_TOKENS
     );
 
     if (!completion) {
       throw new Error("Failed to generate visual report");
     }
 
-    const overallAnalysis = completion.replace(/^```html|```$/g, "").trim();
+    const overallAnalysis = extractHtml(completion);
 
     // Find the latest existing report for this questionId to determine the next version
     const latestReport = await QuestionVisualReport.findOne({
