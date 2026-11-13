@@ -4,7 +4,11 @@ WORKDIR /app
 
 # Copy root package files and relevant workspace package.json files
 COPY package.json package-lock.json ./
-COPY ./vision/idea-discussion/backend/package.json ./vision/idea-discussion/backend/
+COPY policy/backend/package.json policy/backend/
+COPY policy/frontend/package.json policy/frontend/
+COPY vision/idea-discussion/backend/package.json vision/idea-discussion/backend/
+COPY vision/admin/package.json vision/admin/
+COPY vision/frontend/package.json vision/frontend/
 
 # Install ALL dependencies (including dev) needed for build
 RUN npm install --workspace=idobata-idea-discussion-backend
@@ -12,8 +16,7 @@ RUN npm install --workspace=idobata-idea-discussion-backend
 WORKDIR /app/vision/idea-discussion/backend
 # Copy the backend source code
 COPY ./vision/idea-discussion/backend ./
-# Build backend if needed (uncomment if you have a build step)
-# RUN npm run build
+RUN npm run build
 
 # Stage 2: Final Production/Development Image
 FROM node:20-alpine AS production
@@ -22,8 +25,8 @@ WORKDIR /app
 # Copy installed node_modules from the first stage
 COPY --from=backend-builder /app/node_modules ./node_modules
 
-# Copy backend source code
-COPY ./vision/idea-discussion/backend ./vision/idea-discussion/backend
+# Copy the compiled backend. The screen is a separate container.
+COPY --from=backend-builder /app/vision/idea-discussion/backend ./vision/idea-discussion/backend
 
 # Set environment variables
 ENV NODE_ENV=production
