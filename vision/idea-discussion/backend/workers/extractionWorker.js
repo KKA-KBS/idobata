@@ -6,6 +6,18 @@ import { callLLM } from "../services/llmService.js";
 import { emitNewExtraction } from "../services/socketService.js"; // Import socket service
 import { linkItemToQuestions } from "./linkingWorker.js"; // Assume this function exists and works
 
+// 抽出結果（課題・解決策のstatement）は公開画面に表示されるため、
+// 個人情報や誹謗中傷を含めないためのルール（チャット・インポート共通）
+const SAFETY_RULES = `
+Safety Rules (最優先で遵守すること):
+- 抽出したstatementは公開画面に表示されます。以下を statement に絶対に含めないでください。
+  * 個人を特定できる情報：個人名（公人の公的な職務・発言に関するものを除く）、住所、電話番号、メールアドレス、SNSアカウント名、勤務先・学校名と組み合わせた属性、顔写真やID番号など
+  * 特定の個人・団体に対する誹謗中傷、侮辱、差別的表現、脅迫、人格攻撃
+- 入力にこれらが含まれていても、背後に正当な課題や解決策がある場合は、該当部分を取り除くか一般化（例：「〇〇さん」→「近隣住民」、「△△小学校」→「地域の小学校」）したうえで、客観的な表現で記述してください。
+- 誹謗中傷・攻撃・個人情報の暴露のみが目的で、建設的な課題や解決策として成立しない内容は抽出せず、空の配列を返してください。
+- updates で既存項目を更新する場合も同じルールを適用してください。
+`;
+
 // Helper function to build the prompt based on source type
 function buildExtractionPrompt(sourceType, data) {
   let prompt = "";
@@ -117,6 +129,7 @@ Rules:
 - If no new problems/solutions or updates are found, return empty arrays.
 - Refer to existing items by their provided IDs when suggesting updates.
 - **重要**: 情報が不足している場合は、無理に問題や解決策を生成しないでください。良質なstatementを作成するための十分な情報がない場合は、空の配列を返してください。不確かな推測や曖昧な表現は避け、明確に表現できる場合のみ抽出してください。
+${SAFETY_RULES}
 
 Output Format: Respond ONLY in JSON format with the following structure:
 {
@@ -187,6 +200,7 @@ Rules:
 - Ensure all generated statements are in **Japanese**.
 - If no problems or solutions are found, return an empty array for "additions".
 - **重要**: 情報が不足している場合は、無理に問題や解決策を生成しないでください。良質なstatementを作成するための十分な情報がない場合は、空の配列を返してください。不確かな推測や曖昧な表現は避け、明確に表現できる場合のみ抽出してください。
+${SAFETY_RULES}
 
 Output Format: Respond ONLY in JSON format with the following structure:
 {

@@ -2,10 +2,36 @@ import mongoose from "mongoose"; // Import mongoose for ObjectId validation
 import { v4 as uuidv4 } from "uuid"; // For generating temporary user IDs
 import ChatThread from "../models/ChatThread.js";
 import QuestionLink from "../models/QuestionLink.js"; // Import QuestionLink model
-import SharpQuestion from "../models/SharpQuestion.js"; // Import SharpQuestion model
+import SharpQuestion, {
+  VISIBLE_QUESTION_FILTER,
+} from "../models/SharpQuestion.js"; // Import SharpQuestion model
 import Theme from "../models/Theme.js"; // Import Theme model for custom prompts
 import { callLLM } from "../services/llmService.js"; // Import the LLM service
+import { participantId } from "../utils/participantId.js";
 import { processExtraction } from "../workers/extractionWorker.js"; // Import the extraction worker function
+
+/**
+ * 個人情報・誹謗中傷が入力された場合の応答方針。
+ * テーマ独自のAIプロンプト（customPrompt）を設定していても常に付ける。
+ */
+export const CHAT_SAFETY_GUIDANCE = `【個人情報・誹謗中傷への対応（他の指示より優先）】
+- ユーザーの発言に個人を特定できる情報（個人名、住所、電話番号、メールアドレス、SNSアカウント、勤務先・学校名など）が含まれる場合：その情報を応答の中で繰り返したり、さらに詳しく尋ねたりしないでください。この対話の内容は記録され、意見として整理・公開される可能性があるため個人情報は書かないよう、やわらかく一言伝えたうえで、「近隣の方」「ある職場」のように一般化した形で話を続けてください。
+- 特定の個人・団体への誹謗中傷、侮辱、差別的表現、脅迫が含まれる場合：その表現に同調・反復・増幅せず、相手を責めずに落ち着いた口調で応答してください。発言の背景にある困りごとや課題に目を向け、「どんな状況で困っているか」「どうなると良いか」といった建設的な方向へ話題を促してください。
+- ユーザー自身や他者に差し迫った危険がうかがえる場合は、議論を続けるより先に、身近な相談窓口や緊急連絡先への相談を勧めてください。`;
+
+/**
+ * チャットの対象となっているテーマを AI に伝える文を作る。テーマが無ければ空文字。
+ */
+export function buildThemeContext(theme) {
+  if (!theme?.title) return "";
+  let context = `この対話のテーマ: ${theme.title}\n`;
+  if (theme.description) {
+    context += `テーマの説明: ${theme.description}\n`;
+  }
+  context +=
+    "このテーマに沿って対話してください。ユーザーの話題がテーマから大きく外れた場合は、否定せずにテーマとのつながりを尋ねてください。\n";
+  return context;
+}
 
 // Controller function for handling new chat messages by theme
 const handleNewMessageByTheme = async (req, res) => {
@@ -17,6 +43,7 @@ const handleNewMessageByTheme = async (req, res) => {
 
   try {
     let { userId, message, threadId, questionId, context } = req.body;
+    userId = participantId(req, userId);
 
     // Validate input
     if (!message) {
@@ -213,7 +240,10 @@ const handleNewMessageByTheme = async (req, res) => {
       }
     } else {
       try {
-        const themeQuestions = await SharpQuestion.find({ themeId }).lean();
+        const themeQuestions = await SharpQuestion.find({
+          themeId,
+          ...VISIBLE_QUESTION_FILTER,
+        }).lean();
 
         if (themeQuestions.length > 0) {
           referenceOpinions +=
@@ -343,8 +373,9 @@ const handleNewMessageByTheme = async (req, res) => {
 
     // --- Get theme and determine system prompt ---
     let systemPrompt = "";
+    let theme = null;
     try {
-      const theme = await Theme.findById(themeId);
+      theme = await Theme.findById(themeId);
       if (theme?.customPrompt) {
         systemPrompt = theme.customPrompt;
       } else {
@@ -375,7 +406,15 @@ const handleNewMessageByTheme = async (req, res) => {
     }
 
     llmMessages.push({ role: "system", content: systemPrompt });
+    // 個人情報・誹謗中傷への応答方針。customPrompt の有無に関わらず付ける
+    llmMessages.push({ role: "system", content: CHAT_SAFETY_GUIDANCE });
     // --- End core system prompt ---
+
+    // テーマのタイトルと説明を伝える。AIプロンプトを設定していてもいなくても付ける
+    const themeContext = buildThemeContext(theme);
+    if (themeContext) {
+      llmMessages.push({ role: "system", content: themeContext });
+    }
 
     // Add the reference opinions as a system message
     if (referenceOpinions) {
@@ -546,7 +585,8 @@ const getThreadMessagesByTheme = async (req, res) => {
 
 // Controller function for getting a thread by user and question
 const getThreadByUserAndQuestion = async (req, res) => {
-  const { userId, questionId } = req.query;
+  const { questionId } = req.query;
+  const userId = participantId(req, req.query.userId);
 
   if (!userId) {
     return res.status(400).json({ error: "User ID is required" });
@@ -619,7 +659,7 @@ const getThreadByUserAndQuestion = async (req, res) => {
 // Controller function for getting a thread by user and theme (for theme-level chats)
 const getThreadByUserAndTheme = async (req, res) => {
   const { themeId } = req.params;
-  const { userId } = req.query;
+  const userId = participantId(req, req.query.userId);
 
   if (!mongoose.Types.ObjectId.isValid(themeId)) {
     return res.status(400).json({ error: "Invalid theme ID format" });
