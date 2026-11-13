@@ -8,11 +8,15 @@ import {
   triggerPolicyGeneration,
   triggerReportGeneration,
   triggerVisualReportGeneration,
+  updateQuestionVisibility,
 } from "../controllers/questionController.js";
+import { admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router({ mergeParams: true });
 
 router.get("/", getQuestionsByTheme);
+
+router.patch("/:questionId/visibility", admin, updateQuestionVisibility);
 
 router.get("/:questionId/details", getQuestionDetails);
 

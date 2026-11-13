@@ -2,7 +2,9 @@ import ChatThread from "../models/ChatThread.js";
 import Like from "../models/Like.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
-import SharpQuestion from "../models/SharpQuestion.js";
+import SharpQuestion, {
+  VISIBLE_QUESTION_FILTER,
+} from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
 import { getUser } from "./userController.js";
@@ -18,7 +20,7 @@ export const getTopPageData = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(100);
 
-    const questions = await SharpQuestion.find()
+    const questions = await SharpQuestion.find(VISIBLE_QUESTION_FILTER)
       .sort({ createdAt: -1 })
       .limit(100); // Increased to get more questions
 
@@ -94,6 +96,7 @@ export const getTopPageData = async (req, res) => {
       themes.map(async (theme) => {
         const keyQuestionCount = await SharpQuestion.countDocuments({
           themeId: theme._id,
+          ...VISIBLE_QUESTION_FILTER,
         });
 
         const commentCount = await ChatThread.countDocuments({

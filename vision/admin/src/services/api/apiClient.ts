@@ -36,14 +36,10 @@ export class ApiClient {
       ...options.headers,
     };
 
-    const token = localStorage.getItem("auth_token");
-    if (token) {
-      (headers as Record<string, string>).Authorization = `Bearer ${token}`;
-    }
-
     const config = {
       ...options,
       headers,
+      credentials: "include" as const,
     };
 
     try {
@@ -202,7 +198,24 @@ export class ApiClient {
   }
 
   async getQuestionsByTheme(themeId: string): Promise<ApiResult<Question[]>> {
-    return this.request<Question[]>(`/themes/${themeId}/questions`);
+    // 管理画面では非表示の重要論点も含めて取得する
+    return this.request<Question[]>(
+      `/themes/${themeId}/questions?includeHidden=true`
+    );
+  }
+
+  async updateQuestionVisibility(
+    themeId: string,
+    questionId: string,
+    isVisible: boolean
+  ): Promise<ApiResult<Question>> {
+    return this.request<Question>(
+      `/themes/${themeId}/questions/${questionId}/visibility`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ isVisible }),
+      }
+    );
   }
 
   async generateQuestions(themeId: string): Promise<ApiResult<void>> {

@@ -45,8 +45,15 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
   const [isGeneratingDebateAnalysis, setIsGeneratingDebateAnalysis] = useState<
     Record<string, boolean>
   >({});
-  const [isGeneratingVisualReport, setIsGeneratingVisualReport] =
-    useState(false);
+  const [isGeneratingVisualReport, setIsGeneratingVisualReport] = useState<
+    Record<string, boolean>
+  >({});
+  const [isGeneratingAllReports, setIsGeneratingAllReports] = useState<
+    Record<string, boolean>
+  >({});
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<
+    Record<string, boolean>
+  >({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
 
@@ -113,22 +120,21 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     setIsGeneratingQuestions(false);
   };
 
-  const handleGenerateVisualReport = async () => {
-    if (!theme?._id || !selectedQuestionId) return;
+  // 対象の重要論点IDを引数で受け取る（選択状態の更新は非同期のため、
+  // selectedQuestionId を参照すると直前に選択していた論点が対象になってしまう）
+  const handleGenerateVisualReport = async (questionId: string) => {
+    if (!theme?._id) return;
 
-    setIsGeneratingVisualReport(true);
+    setIsGeneratingVisualReport((prev) => ({ ...prev, [questionId]: true }));
     setQuestionsError(null);
     setSuccessMessage(null);
 
-    const result = await apiClient.generateVisualReport(
-      theme._id,
-      selectedQuestionId
-    );
+    const result = await apiClient.generateVisualReport(theme._id, questionId);
 
     if (result.isErr()) {
       console.error("Failed to generate visual report:", result.error);
       setQuestionsError("ビジュアルレポートの生成に失敗しました。");
-      setIsGeneratingVisualReport(false);
+      setIsGeneratingVisualReport((prev) => ({ ...prev, [questionId]: false }));
       return;
     }
 
@@ -136,7 +142,41 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
       "ビジュアルレポートの生成を開始しました。しばらくすると重要論点の詳細画面で確認できます。"
     );
 
-    setIsGeneratingVisualReport(false);
+    setIsGeneratingVisualReport((prev) => ({ ...prev, [questionId]: false }));
+  };
+
+  // イラストまとめ・論点まとめ・市民意見レポートの3種をまとめて生成開始する
+  const handleGenerateAllReports = async (questionId: string) => {
+    if (!theme?._id) return;
+    const themeId = theme._id;
+
+    setIsGeneratingAllReports((prev) => ({ ...prev, [questionId]: true }));
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    const [visual, debate, report] = await Promise.all([
+      apiClient.generateVisualReport(themeId, questionId),
+      apiClient.generateDebateAnalysis(themeId, questionId),
+      apiClient.generateReportExample(themeId, questionId),
+    ]);
+
+    const failed = [
+      visual.isErr() ? "イラストまとめ" : null,
+      debate.isErr() ? "論点まとめ" : null,
+      report.isErr() ? "市民意見レポート" : null,
+    ].filter((name): name is string => name !== null);
+
+    if (failed.length > 0) {
+      console.error("Failed to start some reports:", { visual, debate, report });
+      setQuestionsError(`${failed.join("・")}の生成開始に失敗しました。`);
+    }
+    if (failed.length < 3) {
+      setSuccessMessage(
+        "レポートの一括生成を開始しました。生成には数分かかる場合があります。"
+      );
+    }
+
+    setIsGeneratingAllReports((prev) => ({ ...prev, [questionId]: false }));
   };
 
   const handleGenerateReport = async (
@@ -216,8 +256,37 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
     });
   };
 
-  const handleToggleVisibility = () => {
-    alert("未実装です。");
+  const handleToggleVisibility = async (question: Question) => {
+    if (!theme?._id) return;
+
+    const nextVisible = question.isVisible === false;
+    setIsUpdatingVisibility((prev) => ({ ...prev, [question._id]: true }));
+    setQuestionsError(null);
+    setSuccessMessage(null);
+
+    const result = await apiClient.updateQuestionVisibility(
+      theme._id,
+      question._id,
+      nextVisible
+    );
+
+    if (result.isErr()) {
+      console.error("Failed to update question visibility:", result.error);
+      setQuestionsError("表示設定の変更に失敗しました。");
+    } else {
+      setQuestions((prev) =>
+        prev.map((q) =>
+          q._id === question._id ? { ...q, isVisible: nextVisible } : q
+        )
+      );
+      setSuccessMessage(
+        nextVisible
+          ? "重要論点を公開画面に表示しました。"
+          : "重要論点を公開画面で非表示にしました。"
+      );
+    }
+
+    setIsUpdatingVisibility((prev) => ({ ...prev, [question._id]: false }));
   };
 
   const handleChange = (
@@ -600,6 +669,12 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                       >
                         市民意見レポート
                       </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                      >
+                        3種一括
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-background divide-y divide-border">
@@ -648,12 +723,18 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleToggleVisibility();
+                              handleToggleVisibility(question);
                             }}
-                            className="px-3 py-1 bg-success/20 text-success-foreground rounded-full text-xs font-medium"
+                            disabled={isUpdatingVisibility[question._id]}
+                            title="クリックで公開画面での表示/非表示を切り替え"
+                            className={`px-3 py-1 rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                              question.isVisible === false
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-success/20 text-success-foreground"
+                            }`}
                             type="button"
                           >
-                            表示
+                            {question.isVisible === false ? "非表示" : "表示"}
                           </button>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -661,14 +742,13 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedQuestionId(question._id);
-                              handleGenerateVisualReport();
+                              handleGenerateVisualReport(question._id);
                             }}
-                            disabled={isGeneratingVisualReport}
+                            disabled={isGeneratingVisualReport[question._id]}
                             className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
                             type="button"
                           >
-                            {isGeneratingVisualReport &&
-                            selectedQuestionId === question._id ? (
+                            {isGeneratingVisualReport[question._id] ? (
                               <span className="flex items-center">
                                 <svg
                                   className="animate-spin -ml-1 mr-1 h-3 w-3"
@@ -782,6 +862,27 @@ const ThemeForm: FC<ThemeFormProps> = ({ theme, isEdit = false }) => {
                             ) : (
                               "更新する"
                             )}
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleGenerateAllReports(question._id);
+                            }}
+                            disabled={
+                              isGeneratingAllReports[question._id] ||
+                              isGeneratingVisualReport[question._id] ||
+                              isGeneratingDebateAnalysis[question._id] ||
+                              isGeneratingReports[question._id]
+                            }
+                            title="イラストまとめ・論点まとめ・市民意見レポートをまとめて更新"
+                            className="px-3 py-1 bg-primary text-primary-foreground rounded-full text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
+                            type="button"
+                          >
+                            {isGeneratingAllReports[question._id]
+                              ? "開始中..."
+                              : "一括更新"}
                           </button>
                         </td>
                       </tr>

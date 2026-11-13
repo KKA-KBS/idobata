@@ -3,7 +3,9 @@ import ChatThread from "../models/ChatThread.js";
 import Like from "../models/Like.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
-import SharpQuestion from "../models/SharpQuestion.js";
+import SharpQuestion, {
+  VISIBLE_QUESTION_FILTER,
+} from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import Theme from "../models/Theme.js";
 
@@ -20,6 +22,7 @@ export const getAllThemes = async (req, res) => {
       // キークエスチョン数をカウント
       const keyQuestionCount = await SharpQuestion.countDocuments({
         themeId: theme._id,
+        ...VISIBLE_QUESTION_FILTER,
       });
 
       // コメント数をカウント（ChatThreadのドキュメント数をカウント）
@@ -222,7 +225,10 @@ export const getThemeDetail = async (req, res) => {
     }
 
     // キークエスチョンを取得
-    const keyQuestions = await SharpQuestion.find({ themeId });
+    const keyQuestions = await SharpQuestion.find({
+      themeId,
+      ...VISIBLE_QUESTION_FILTER,
+    });
 
     // 課題（問題点）を取得
     const issues = await Problem.find({ themeId });

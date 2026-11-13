@@ -129,6 +129,8 @@ export interface Question {
   questionText: string;
   tagLine?: string;
   tags?: string[];
+  /** 公開画面に表示するか。未設定の既存データは表示扱い */
+  isVisible?: boolean;
   createdAt: string;
   updatedAt: string;
 }

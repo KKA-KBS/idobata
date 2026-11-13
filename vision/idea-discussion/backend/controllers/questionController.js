@@ -4,7 +4,10 @@ import Like from "../models/Like.js";
 import Problem from "../models/Problem.js";
 import QuestionLink from "../models/QuestionLink.js";
 import ReportExample from "../models/ReportExample.js";
-import SharpQuestion from "../models/SharpQuestion.js";
+import { isAdminRequest } from "../middleware/authMiddleware.js";
+import SharpQuestion, {
+  VISIBLE_QUESTION_FILTER,
+} from "../models/SharpQuestion.js";
 import Solution from "../models/Solution.js";
 import { getDebateAnalysis } from "../services/debateAnalysisGenerator.js";
 import { getVisualReport as getQuestionVisualReport } from "../services/questionVisualReportGenerator.js";
@@ -24,7 +27,11 @@ export const getQuestionDetails = async (req, res) => {
 
   try {
     const question = await SharpQuestion.findById(questionId);
-    if (!question) {
+    // 非表示の重要論点は公開画面から直接URLで開かれても見せない
+    if (
+      !question ||
+      (question.isVisible === false && !isAdminRequest(req))
+    ) {
       return res.status(404).json({ message: "Question not found" });
     }
 
@@ -405,6 +412,43 @@ export const getVisualReport = async (req, res) => {
   }
 };
 
+// PATCH /api/themes/:themeId/questions/:questionId/visibility - 公開画面での表示/非表示を切り替える
+export const updateQuestionVisibility = async (req, res) => {
+  const { questionId, themeId } = req.params;
+  const { isVisible } = req.body;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(questionId) ||
+    !mongoose.Types.ObjectId.isValid(themeId)
+  ) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  if (typeof isVisible !== "boolean") {
+    return res.status(400).json({ message: "isVisible must be a boolean" });
+  }
+
+  try {
+    const question = await SharpQuestion.findOneAndUpdate(
+      { _id: questionId, themeId },
+      { isVisible },
+      { new: true }
+    );
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+    res.status(200).json(question);
+  } catch (error) {
+    console.error(
+      `Error updating visibility for question ${questionId}:`,
+      error
+    );
+    res.status(500).json({
+      message: "Error updating question visibility",
+      error: error.message,
+    });
+  }
+};
+
 // GET /api/themes/:themeId/questions - 特定テーマの質問を取得
 export const getQuestionsByTheme = async (req, res) => {
   const { themeId } = req.params;
@@ -414,7 +458,13 @@ export const getQuestionsByTheme = async (req, res) => {
   }
 
   try {
-    const questions = await SharpQuestion.find({ themeId }).sort({
+    // 非表示の重要論点は、管理者が includeHidden=true を指定した場合だけ返す
+    const includeHidden =
+      req.query.includeHidden === "true" && isAdminRequest(req);
+    const filter = includeHidden
+      ? { themeId }
+      : { themeId, ...VISIBLE_QUESTION_FILTER };
+    const questions = await SharpQuestion.find(filter).sort({
       createdAt: -1,
     });
     res.status(200).json(questions);
