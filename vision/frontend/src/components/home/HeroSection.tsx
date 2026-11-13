@@ -5,31 +5,27 @@ import { Button } from "../ui/button";
 import { Select } from "../ui/select";
 
 interface HeroSectionProps {
-  latestQuestions?: {
+  // 管理者が作成したテーマ（お題）。選ぶとテーマのページに移る
+  latestThemes?: {
     _id: string;
-    questionText: string;
-    tagLine?: string;
-    themeId?: string;
+    title: string;
   }[];
 }
 
-const HeroSection = ({ latestQuestions = [] }: HeroSectionProps) => {
-  const [selectedQuestion, setSelectedQuestion] = useState("");
+const HeroSection = ({ latestThemes = [] }: HeroSectionProps) => {
+  const [selectedThemeId, setSelectedThemeId] = useState("");
   const navigate = useNavigate();
 
   const handleStartDialogue = () => {
-    if (selectedQuestion) {
-      const question = latestQuestions.find((q) => q._id === selectedQuestion);
-      if (question?.themeId) {
-        navigate(`/themes/${question.themeId}/questions/${selectedQuestion}`);
-      }
+    if (selectedThemeId) {
+      navigate(`/themes/${selectedThemeId}`);
     }
   };
 
   // Format options for the select dropdown
-  const questionOptions = latestQuestions.map((q) => ({
-    value: q._id,
-    label: q.tagLine || `${q.questionText.substring(0, 50)}...`,
+  const themeOptions = latestThemes.map((t) => ({
+    value: t._id,
+    label: t.title,
   }));
 
   return (
@@ -104,14 +100,14 @@ const HeroSection = ({ latestQuestions = [] }: HeroSectionProps) => {
           </p>
 
           <div className="flex flex-col items-center gap-4">
-            {/* Question Dropdown */}
+            {/* Theme Dropdown */}
             <div className="w-full max-w-md">
               <Select
-                value={selectedQuestion}
-                onChange={(e) => setSelectedQuestion(e.target.value)}
+                value={selectedThemeId}
+                onChange={(e) => setSelectedThemeId(e.target.value)}
                 options={[
                   { value: "", label: "お題を選んでください" },
-                  ...questionOptions,
+                  ...themeOptions,
                 ]}
                 size="lg"
                 className="bg-white border-blue-400 border-2 text-gray-700"
@@ -122,7 +118,7 @@ const HeroSection = ({ latestQuestions = [] }: HeroSectionProps) => {
             <Button
               onClick={handleStartDialogue}
               size="lg"
-              disabled={!selectedQuestion}
+              disabled={!selectedThemeId}
               className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 py-4 text-base font-medium rounded-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               対話をはじめる

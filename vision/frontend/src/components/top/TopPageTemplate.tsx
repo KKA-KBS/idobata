@@ -1,11 +1,12 @@
 import HeroSection from "../../components/home/HeroSection";
-import type { Opinion } from "../../types";
+import type { Opinion, Theme } from "../../types";
 import BreadcrumbView from "../common/BreadcrumbView";
 import FeaturedQuestionsSection from "../home/FeaturedQuestionsSection";
 import OpinionsSection from "../home/OpinionsSection";
 import QuestionsTable from "../home/QuestionsTable";
 
 export interface TopPageTemplateProps {
+  latestThemes?: Pick<Theme, "_id" | "title">[];
   latestQuestions?: {
     _id: string;
     questionText: string;
@@ -22,6 +23,7 @@ export interface TopPageTemplateProps {
 }
 
 const TopPageTemplate = ({
+  latestThemes = [],
   latestQuestions = [],
   latestOpinions = [],
 }: TopPageTemplateProps) => {
@@ -54,7 +56,8 @@ const TopPageTemplate = ({
         <BreadcrumbView items={[]} />
       </div>
 
-      <HeroSection latestQuestions={latestQuestions} />
+      {/* 入口はテーマ（お題）で選び、下の一覧は重要論点を表示する */}
+      <HeroSection latestThemes={latestThemes} />
 
       <OpinionsSection opinions={latestOpinions} />
 
