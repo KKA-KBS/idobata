@@ -21,10 +21,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Default OpenAI client, reads OPENAI_API_KEY from environment automatically
-client = OpenAI()
-# If you need to explicitly pass the key:
-# client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# LiteLLM (or OpenAI) is selected with LLM_BASE_URL. Unset keeps the OpenAI default.
+_llm_kwargs = {}
+if os.getenv("LLM_BASE_URL"):
+    _llm_kwargs["base_url"] = os.environ["LLM_BASE_URL"]
+if os.getenv("LLM_API_KEY"):
+    _llm_kwargs["api_key"] = os.environ["LLM_API_KEY"]
+client = OpenAI(**_llm_kwargs)
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
 
 CHROMA_DB_PATH = "/data/chroma"
@@ -126,7 +130,7 @@ async def generate_embeddings(texts: List[str]) -> List[List[float]]:
             
             response = client.embeddings.create(
                 input=batch_texts,
-                model="text-embedding-3-small",
+                model=EMBEDDING_MODEL,
                 encoding_format="float" # Recommended for text-embedding-3
             )
             
