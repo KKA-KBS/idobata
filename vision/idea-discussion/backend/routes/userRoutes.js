@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getProfileImage,
   getUserInfo,
   updateUserDisplayName,
   uploadProfileImage,
@@ -11,6 +12,8 @@ const router = express.Router();
 router.get("/:userId", getUserInfo);
 
 router.put("/:userId", updateUserDisplayName);
+
+router.get("/:userId/profile-image", getProfileImage);
 
 router.post(
   "/:userId/profile-image",
