@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const questionVisualReportSchema = new mongoose.Schema(
   {
@@ -41,6 +42,8 @@ questionVisualReportSchema.index(
   { questionId: 1, version: 1 },
   { unique: true }
 );
+
+questionVisualReportSchema.plugin(tenantPlugin);
 
 const QuestionVisualReport = mongoose.model(
   "QuestionVisualReport",

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const messageSchema = new mongoose.Schema(
   {
@@ -55,6 +56,8 @@ const chatThreadSchema = new mongoose.Schema(
   },
   { timestamps: true }
 ); // Adds createdAt and updatedAt automatically
+
+chatThreadSchema.plugin(tenantPlugin);
 
 const ChatThread = mongoose.model("ChatThread", chatThreadSchema);
 

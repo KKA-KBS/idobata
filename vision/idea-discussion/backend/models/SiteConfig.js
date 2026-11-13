@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const siteConfigSchema = new mongoose.Schema(
   {
@@ -13,6 +14,8 @@ const siteConfigSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+siteConfigSchema.plugin(tenantPlugin);
 
 const SiteConfig = mongoose.model("SiteConfig", siteConfigSchema);
 

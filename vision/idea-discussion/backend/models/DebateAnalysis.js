@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const debateAnalysisSchema = new mongoose.Schema(
   {
@@ -47,6 +48,8 @@ const debateAnalysisSchema = new mongoose.Schema(
 ); // createdAt, updatedAt を自動追加
 
 debateAnalysisSchema.index({ questionId: 1, version: 1 }, { unique: true });
+
+debateAnalysisSchema.plugin(tenantPlugin);
 
 const DebateAnalysis = mongoose.model("DebateAnalysis", debateAnalysisSchema);
 

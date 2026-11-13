@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const sharpQuestionSchema = new mongoose.Schema(
   {
@@ -28,6 +29,12 @@ const sharpQuestionSchema = new mongoose.Schema(
       ref: "Theme",
       required: true,
     },
+    isVisible: {
+      // 公開画面に表示するか。管理画面で切り替える。
+      // 既存データにはこの項目が無いため、検索時は { $ne: false } で「表示」とみなす
+      type: Boolean,
+      default: true,
+    },
     clusteringResults: {
       type: Map,
       of: Object,
@@ -37,6 +44,11 @@ const sharpQuestionSchema = new mongoose.Schema(
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加 (todo.md指示)
 
+sharpQuestionSchema.plugin(tenantPlugin);
+
 const SharpQuestion = mongoose.model("SharpQuestion", sharpQuestionSchema);
+
+/** 公開画面に出す重要論点の検索条件（isVisible 未設定の既存データは表示扱い） */
+export const VISIBLE_QUESTION_FILTER = { isVisible: { $ne: false } };
 
 export default SharpQuestion;

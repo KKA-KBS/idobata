@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tenantPlugin } from "../plugins/tenantPlugin.js";
 
 const policyDraftSchema = new mongoose.Schema(
   {
@@ -41,6 +42,8 @@ const policyDraftSchema = new mongoose.Schema(
   },
   { timestamps: true }
 ); // createdAt, updatedAt を自動追加 (todo.md指示)
+
+policyDraftSchema.plugin(tenantPlugin);
 
 const PolicyDraft = mongoose.model("PolicyDraft", policyDraftSchema);
 
