@@ -70,6 +70,7 @@ export class HttpClient {
     const url = `${this.baseUrl}${endpoint}`;
     const options: RequestInit = {
       method,
+      credentials: "include",
       headers: {
         ...this.defaultHeaders,
         ...headers,

@@ -1,5 +1,4 @@
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -11,8 +10,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requireAdmin = false,
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, isLoading, user, session } = useAuth();
 
   if (isLoading) {
     return (
@@ -26,7 +24,23 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    const returnTo = encodeURIComponent(window.location.href);
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-destructive">
+            {session
+              ? "このテナントの管理者ではありません"
+              : "Cognito のログイン情報で管理画面を開けませんでした"}
+          </p>
+          <p className="mt-4 flex justify-center gap-4 text-sm">
+            <a href="/">投稿画面</a>
+            <a href={`/session?switch=1&return=${returnTo}`}>切り替える</a>
+            <a href="/logout">ログアウト</a>
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (requireAdmin && user?.role !== "admin") {

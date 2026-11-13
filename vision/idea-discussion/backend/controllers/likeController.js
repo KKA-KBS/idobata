@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
 import Like from "../models/Like.js";
+import { participantId } from "../utils/participantId.js";
 
 // TODO: 認証基盤が入ったら認証対応
 export const toggleLike = async (req, res) => {
-  const { userId } = req.body;
+  const userId = participantId(req, req.body.userId);
   const { targetId, targetType } = req.params;
 
   if (!userId) {
@@ -55,7 +56,7 @@ export const toggleLike = async (req, res) => {
 
 // TODO: 認証基盤が入ったら認証対応
 export const getLikeStatus = async (req, res) => {
-  const { userId } = req.query;
+  const userId = participantId(req, req.query.userId);
   const { targetId, targetType } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(targetId)) {

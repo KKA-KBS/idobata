@@ -39,7 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     const initializeUser = async () => {
-      const userId = userIdManager.getUserId();
+      const session = await apiClient.getSession();
+      const sessionUserId = session.isOk() ? session.value.userId : null;
+      if (sessionUserId) userIdManager.setUserId(sessionUserId);
+      const userId = sessionUserId || userIdManager.getUserId();
 
       const result = await apiClient.getUserInfo(userId);
 

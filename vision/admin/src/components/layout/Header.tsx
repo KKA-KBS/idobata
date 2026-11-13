@@ -3,25 +3,23 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
 const Header: React.FC = () => {
-  const { logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-  };
+  const { session } = useAuth();
+  const returnTo = encodeURIComponent(window.location.href);
 
   return (
     <header className="bg-background shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center gap-4">
         <h1 className="text-xl font-bold text-foreground">
-          <Link to="/">いどばた管理画面</Link>
+          <Link to="/">いどばた管理</Link>
         </h1>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="bg-destructive hover:bg-destructive/90 text-destructive-foreground px-4 py-2 rounded-md text-sm font-medium"
-        >
-          ログアウト
-        </button>
+        <div className="flex items-center gap-4 text-sm">
+          {session?.displayName ? <span>{session.displayName}</span> : null}
+          <a href="/">投稿画面</a>
+          {session && session.count > 1 ? (
+            <a href={`/session?switch=1&return=${returnTo}`}>切り替える</a>
+          ) : null}
+          <a href="/logout">ログアウト</a>
+        </div>
       </div>
     </header>
   );

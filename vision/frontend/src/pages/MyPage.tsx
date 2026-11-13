@@ -64,7 +64,7 @@ const MyPage: React.FC = () => {
         <h1 className="text-4xl font-bold mb-4">マイページ</h1>
 
         <p className="text-gray-600 mb-8 leading-relaxed">
-          本サイト内での表示名と画像を変更できます。アカウントはお使いの端末ごとに自動生成され、メールアドレスや個人情報の入力は不要でお手軽にご利用いただけます。
+          本サイト内での表示名と画像を変更できます。ログイン中の利用者に紐づきます。メールアドレスの入力は不要です。本名は控えてください。
         </p>
 
         <div className="flex flex-col gap-8 text-base">
